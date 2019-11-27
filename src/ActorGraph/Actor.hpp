@@ -11,14 +11,20 @@ using namespace std;
 class Actor {
   public:
     string actorName;
-    bool visited;
     string prevActor;
     string prevMovie;
+    int priority;
+    bool visited;
+    bool done;
 
     /*default constructor*/
     Actor();
 
-    Actor(string& c) : actorName(c) { visited = 0; }
+    Actor(string& c) : actorName(c) {
+        priority = 0;
+        visited = 0;
+        done = 0;
+    }
 };
 
 #endif

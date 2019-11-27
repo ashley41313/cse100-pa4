@@ -18,6 +18,17 @@
 #include "Movie.hpp"
 // Maybe include some data structures here
 
+/*this is the class and operator that will be used to sort our
+ *priority queue first by the # then by the alphabet*/
+class Alpha {
+  public:
+    bool operator()(pair<int, string> const& one,
+                    pair<int, string> const& two) {
+        return !(one.first > two.first ||
+                 ((one.first == two.first) && (one.second < two.second)));
+    }
+};
+
 using namespace std;
 
 /**
@@ -52,6 +63,11 @@ class ActorGraph {
     bool loadFromFile(const char* in_filename, bool use_weighted_edges);
     void BFS(string actora, string actorb, ostream& outFile);
     void resetGraph();
+    vector<string> partialBFS(string actora, int layer);
+    int numConnections(string actora, string actorb);
+    void increasePriority(string actor, int num);
+    pair<int, string> createPair(string actor);
+    void priorityDone(string actor);
 };
 
 #endif  // ACTORGRAPH_HPP

@@ -30,4 +30,6 @@ class SimpleGraphFixture : public ::testing::Test {
 };
 
 /*tests the encode method*/
-TEST_F(SimpleGraphFixture, TEST_GRAPH) {}
+TEST_F(SimpleGraphFixture, PARTIAL_BFS) {
+    vector<string> layerone = graph.partialBFS("Kevin Bacon", 1);
+}

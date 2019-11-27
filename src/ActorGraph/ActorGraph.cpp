@@ -244,6 +244,134 @@ void ActorGraph::resetGraph() {
     while (itr != en) {
         itr->second->prevActor = "";
         itr->second->prevMovie = "";
+        itr->second->priority = 0;
+        itr->second->visited = 0;
+        itr->second->done = 0;
         ++itr;
     }
+}
+
+vector<string> ActorGraph::partialBFS(string actora, int layer) {
+    // 1) push the actora's name to the ququeue
+    queue<string> q;
+    q.push(actora);
+
+    unordered_map<string, vector<string>>::const_iterator findactor, findmovie;
+    unordered_map<string, Actor*>::const_iterator actorptr;
+    string s, next;
+    vector<string> movies, actorsPerMovie;
+    vector<string> layerone, layertwo;
+    int level = 1;
+
+    // 3) pop the first actor and find all the films they've done
+    while (q.size()) {
+        findactor = actormap->find(q.front());
+        movies = findactor->second;
+        q.pop();
+
+        // 4) for each movie, loop through the in common actors(first layer)
+        for (int i = 0; i < movies.size(); i++) {
+            // 5) find all the actors in THAT movie
+            findmovie = moviemap->find(movies[i]);
+            actorsPerMovie = findmovie->second;
+
+            // 6) breadth search and update info for each actor node
+            for (int i = 0; i < actorsPerMovie.size(); i++) {
+                // make sure you're not repeating nodes
+                if ((actorsPerMovie[i] == findactor->first) ||
+                    (actorsPerMovie[i] == actora)) {
+                    continue;
+                }
+
+                // 7) find that actor in ActorNodes and update prev info
+                unordered_map<string, Actor*>::const_iterator actorptr =
+                    actorNodes->find(actorsPerMovie[i]);
+                Actor* next = actorptr->second;
+
+                if (next->visited && (level != 1)) {
+                    continue;
+                }
+
+                if (level == 1) {
+                    q.push(actorsPerMovie[i]); /*we'll only want to do this
+                                                  again for the second layer*/
+                    next->visited = true;
+                }
+
+                /*push this next actor to queue*/
+                if (level == 1) {
+                    layerone.push_back(actorsPerMovie[i]);
+                } else {
+                    layertwo.push_back(actorsPerMovie[i]);
+                }
+            }
+        }
+        level++;
+    }
+
+    if (layer == 1) {
+        return layerone;
+    } else {
+        return layertwo;
+    }
+}
+
+/*count the number of DIRECT connections between two nodes*/
+int ActorGraph::numConnections(string actora, string actorb) {
+    int numConnects = 0; /*to count num of connections between the two nodes*/
+    unordered_map<string, vector<string>>::const_iterator findactor, findmovie;
+    unordered_map<string, Actor*>::const_iterator actorptr =
+        actorNodes->find(actora);
+    Actor* thisactor = actorptr->second;
+
+    if (thisactor->done) {
+        return 0;
+    }
+
+    string s, next;
+    vector<string> movies, actorsPerMovie;
+
+    findactor = actormap->find(actora);
+    movies = findactor->second;
+
+    for (int i = 0; i < movies.size(); i++) { /*loop through all movies*/
+
+        findmovie = moviemap->find(movies[i]); /*actors in that movie*/
+        actorsPerMovie = findmovie->second;
+
+        for (int i = 0; i < actorsPerMovie.size(); i++) { /*loop actors in mov*/
+            if (actorsPerMovie[i] == findactor->first) {
+                continue;
+            }
+            if (actorb == actorsPerMovie[i]) {
+                numConnects++;
+            }
+        }
+    }
+
+    return numConnects;
+}
+
+/*will increase the priority for that actornode*/
+void ActorGraph::increasePriority(string actor, int num) {
+    unordered_map<string, Actor*>::const_iterator actorptr =
+        actorNodes->find(actor);
+    Actor* next = actorptr->second;
+    next->priority += num;
+}
+
+pair<int, string> ActorGraph::createPair(string actor) {
+    unordered_map<string, Actor*>::const_iterator actorptr =
+        actorNodes->find(actor);
+    Actor* next = actorptr->second;
+
+    /* (prioity number, actor name) */
+    return (make_pair(next->priority, actor));
+}
+
+void ActorGraph::priorityDone(string actor) {
+    unordered_map<string, Actor*>::const_iterator actorptr =
+        actorNodes->find(actor);
+    Actor* next = actorptr->second;
+    next->done = 1;
 }
