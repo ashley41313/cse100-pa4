@@ -1,7 +1,7 @@
 /*
  * ActorGraph.cpp
- * Author: <YOUR NAME HERE>
- * Date:   <DATE HERE>
+ * Author: Ashley Eckert
+ * Date:   December 3, 2019
  *
  * This file is meant to exist as a container for starter code that you can use
  * to read the input file format defined in imdb_2019.tsv. Feel free to modify
@@ -9,6 +9,7 @@
  */
 
 #include "ActorGraph.hpp"
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <queue>
@@ -17,7 +18,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Actor.hpp"
-#include "Movie.hpp"
+#define INFINITY 6666666666  // to find shortest distance
 
 using namespace std;
 
@@ -26,7 +27,6 @@ using namespace std;
  */
 ActorGraph::ActorGraph(void) {
     actorNodes = new unordered_map<string, Actor*>();
-    // movieNodes = new unordered_map<string, Movie*>();
     actormap = new unordered_map<string, vector<string>>();
     moviemap = new unordered_map<string, vector<string>>();
     numActors = 0;
@@ -235,6 +235,107 @@ void ActorGraph::BFS(string actora, string actorb, ostream& outFile) {
     outFile << "(" << actorb << ")" << endl;
 }
 
+/*same as BFS except this time we'll be pushing to a priority queue, and
+ *it will be a priorirty queue of PAIRS, not strings, the second piece
+ *of the pair will be the edge weight, so the movies age, that way we'll have
+ *the shortest age when we find the path to the actorb
+ *pair will be <edgeweight , actor name> */
+void ActorGraph::Dijkstra(string actora, string actorb, ostream& outFile) {
+    unordered_map<string, Actor*>::const_iterator actor1;
+    unordered_map<string, vector<string>>::const_iterator findactor, findmovie;
+    vector<string> movies, actorsPerMovie;
+    bool donezo = false;
+    pair<int, string> p1;
+    int currDistance;
+    Actor* next;
+
+    priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha> q =
+        priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha>();
+    q.push(make_pair(0, actora)); /*push edge 0 with name of actor a*/
+
+    actor1 = actorNodes->find(actora);
+    next = actor1->second;
+    next->distance = 0;
+
+    while (q.size()) {  // 3) pop the first actor and films they've done
+        p1 = q.top();
+        q.pop();
+
+        if (p1.second == actorb) {
+            break;
+        }
+
+        currDistance = p1.first; /*will hold THIS current weight*/
+        findactor = actormap->find(p1.second);
+        movies = findactor->second;
+
+        actor1 = actorNodes->find(p1.second);
+        next = actor1->second;
+        next->visited = 1; /*set to has been visited*/
+
+        // 4) for each movie, loop through the in common actors(first layer)
+        for (int i = 0; i < movies.size(); i++) {
+            // 5) find all the actors in THAT movie
+            findmovie = moviemap->find(movies[i]);
+            actorsPerMovie = findmovie->second;
+
+            /*get the year of the movie*/
+            string r = (movies[i]).substr((movies[i]).size() - 4,
+                                          (movies[i]).size() - 1);
+            int movieYear = stoi(r);
+
+            // 6) update only if less than distance & not visited
+            for (int i = 0; i < actorsPerMovie.size(); i++) {
+                if (actorsPerMovie[i] == findactor->first) {
+                    continue;
+                }
+                // 7) find that actor in ActorNodes and update prev info
+                actor1 = actorNodes->find(actorsPerMovie[i]);
+                next = actor1->second;
+                if (next->visited) {
+                    continue;
+                }
+                int newDistance =
+                    1 + currDistance + (2019 - movieYear); /*new distance*/
+
+                if (newDistance < next->distance) {
+                    next->prevActor = findactor->first;
+                    next->prevMovie = findmovie->first;
+                    next->distance = newDistance;
+                    q.push(make_pair(newDistance, actorsPerMovie[i]));
+                }
+            }
+        }
+    }
+
+    donezo = false; /*reset*/
+
+    /*PART 2  :  WRITE TO THE OUTPUT FILE */
+    string nextactor = actorb;         /*start at actorb*/
+    vector<pair<string, string>> vect; /* <actor name , movie name> */
+
+    while (1) {
+        unordered_map<string, Actor*>::const_iterator actoritr =
+            actorNodes->find(nextactor);
+        Actor* actorbptr = actoritr->second;
+
+        if (actorbptr->actorName == actora) {
+            donezo = true;
+            break;
+        }
+        vect.push_back(make_pair(actorbptr->prevActor, actorbptr->prevMovie));
+        nextactor = actorbptr->prevActor; /*go to prev actor*/
+    }
+
+    for (int i = 0; i < vect.size(); i++) {
+        pair<string, string> pp = vect[vect.size() - 1 - i];
+        outFile << "(" << pp.first << ")--[" << pp.second << "]-->";
+    }
+
+    /*NOW PRINT OUT THE ACTOR B SHIT*/
+    outFile << "(" << actorb << ")" << endl;
+}
+
 /*iterors through the actor nodes and reset the prevActor and prevMovie
  * strings*/
 void ActorGraph::resetGraph() {
@@ -247,10 +348,13 @@ void ActorGraph::resetGraph() {
         itr->second->priority = 0;
         itr->second->visited = 0;
         itr->second->done = 0;
+        itr->second->distance = INFINITY;
         ++itr;
     }
 }
 
+/*used in linkpredictor
+ * will be used to only get the first 2 layers of BFS.**/
 vector<string> ActorGraph::partialBFS(string actora, int layer) {
     // 1) push the actora's name to the ququeue
     queue<string> q;
@@ -360,6 +464,7 @@ void ActorGraph::increasePriority(string actor, int num) {
     next->priority += num;
 }
 
+/*makes a pair out of the actors name and it's corresponding movie*/
 pair<int, string> ActorGraph::createPair(string actor) {
     unordered_map<string, Actor*>::const_iterator actorptr =
         actorNodes->find(actor);
@@ -369,6 +474,8 @@ pair<int, string> ActorGraph::createPair(string actor) {
     return (make_pair(next->priority, actor));
 }
 
+/*set's the actornodes variable done to 1 so that we know
+ * we've worked on it */
 void ActorGraph::priorityDone(string actor) {
     unordered_map<string, Actor*>::const_iterator actorptr =
         actorNodes->find(actor);

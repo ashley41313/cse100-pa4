@@ -1,3 +1,15 @@
+/*
+ * pathfinder.cpp
+ * Author: Ashley Eckert
+ * Date:   December 3, 2019
+ *
+ * This file is meant to take in command inputs and choose wether
+ * to use BFS search of Dijkstras algorithm to find a path between
+ * two actors.
+ * it calls ActorGraph class functions to do this.
+ */
+#include <stdio.h>
+#include <string.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -51,8 +63,12 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
-        /*now call BFS on that pair*/
-        graph.BFS(record[0], record[1], outFile);
+        /*now call BFS or DIKJSTRA on that pair*/
+        if (strcmp(edges, "u") == 0) {
+            graph.BFS(record[0], record[1], outFile);
+        } else {
+            graph.Dijkstra(record[0], record[1], outFile);
+        }
         graph.resetGraph();
     }
 

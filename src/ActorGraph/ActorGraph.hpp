@@ -1,7 +1,7 @@
 /*
  * ActorGraph.hpp
- * Author: <YOUR NAME HERE>
- * Date:   <DATE HERE>
+ * Author: Ashley Eckert
+ * Date:   December 3, 2019
  *
  * This file is meant to exist as a container for starter code that you can use
  * to read the input file format defined imdb_2019.tsv. Feel free to modify
@@ -15,7 +15,6 @@
 #include <unordered_map>
 #include <vector>
 #include "Actor.hpp"
-#include "Movie.hpp"
 // Maybe include some data structures here
 
 /*this is the class and operator that will be used to sort our
@@ -24,15 +23,21 @@ class Alpha {
   public:
     bool operator()(pair<int, string> const& one,
                     pair<int, string> const& two) {
-        return !(one.first > two.first ||
-                 ((one.first == two.first) && (one.second < two.second)));
+        return (one.first > two.first ||
+                ((one.first == two.first) && (one.second < two.second)));
     }
 };
 
 using namespace std;
 
 /**
- * TODO: add class header
+ * class header:
+ * The ActorGraph does everythings from reading a file and populating
+ * hashmaps to actually traversing the graph.
+ * The general structures of the graph is 3 hashmaps.
+ *  One for the actors name and a list of all their movies
+ * another for each movie and all the actors in it
+ * and another one for each actor node
  */
 class ActorGraph {
   protected:
@@ -62,6 +67,7 @@ class ActorGraph {
      */
     bool loadFromFile(const char* in_filename, bool use_weighted_edges);
     void BFS(string actora, string actorb, ostream& outFile);
+    void Dijkstra(string actora, string actorb, ostream& outFile);
     void resetGraph();
     vector<string> partialBFS(string actora, int layer);
     int numConnections(string actora, string actorb);
