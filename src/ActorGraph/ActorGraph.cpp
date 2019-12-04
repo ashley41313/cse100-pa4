@@ -99,7 +99,6 @@ bool ActorGraph::loadFromFile(const char* in_filename,
         /*if doesn't exist in our actor map, add to actor map, and add to
          * actor,movie map*/
         Actor* newActor;
-        Movie* newMovie;
         bool actorExists = false;
         bool movieExists = true;
 
