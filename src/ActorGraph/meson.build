@@ -1,4 +1,4 @@
-actor_graph = library('actor_graph', sources:['ActorGraph.cpp', 'ActorGraph.hpp'])
+actor_graph = library('actor_graph', sources:['ActorGraph.cpp', 'ActorGraph.hpp', 'UnionFind.cpp', 'UnionFind.hpp'])
 
 inc = include_directories('.')
 

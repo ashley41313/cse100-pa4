@@ -27,6 +27,9 @@ using namespace std;
  */
 ActorGraph::ActorGraph(void) {
     actorNodes = new unordered_map<string, Actor*>();
+
+    /*is a copy of actorNodes EXCEPT will be modified l8r*/
+    actorNodesMST = new unordered_map<string, string>();
     actormap = new unordered_map<string, vector<string>>();
     moviemap = new unordered_map<string, vector<string>>();
     numActors = 0;
@@ -95,6 +98,8 @@ bool ActorGraph::loadFromFile(const char* in_filename,
             moviemap->find(movieYear);
         unordered_map<string, Actor*>::const_iterator actorptr =
             actorNodes->find(actor);
+        unordered_map<string, string>::const_iterator actorptr2 =
+            actorNodesMST->find(actor);
 
         /*if doesn't exist in our actor map, add to actor map, and add to
          * actor,movie map*/
@@ -116,6 +121,7 @@ bool ActorGraph::loadFromFile(const char* in_filename,
         /*NOW YOU CAN ADD TO THE GRAPH*/
         if (!actorExists) {
             actorNodes->insert(make_pair(actor, newActor)); /*add actor*/
+            (*actorNodesMST)[actor] = ""; /*set the actor key to actor*/
             numActors++;
             vector<string>* movies =
                 new vector<string>(); /*create movies array*/
@@ -151,6 +157,8 @@ bool ActorGraph::loadFromFile(const char* in_filename,
     return true;
 }
 
+/*performs a BFS to find the shortest path between two actor nodes,
+ * uses a queue to do this*/
 void ActorGraph::BFS(string actora, string actorb, ostream& outFile) {
     // 1) push the actora's name to the ququeue
     queue<string> q;
@@ -480,4 +488,99 @@ void ActorGraph::priorityDone(string actor) {
         actorNodes->find(actor);
     Actor* next = actorptr->second;
     next->done = 1;
+}
+
+/** this function creates a MST for the graph*/
+void ActorGraph::kruskals(ostream& outFile) {
+    unordered_map<string, vector<string>>::const_iterator findmovie;
+    vector<string> movies, actorsPerMovie;
+    int totalNodes = 0, totalEdges = 0, totalEdgeWeight = 0; /*to print at end*/
+    UnionFind uf(*actorNodesMST);
+    string actora;
+
+    /*FIRST STEP : get ALL edges and put into a PQ*/
+    priority_queue<pair<int, vector<string>>, vector<pair<int, vector<string>>>,
+                   Alpha2>
+        pq = priority_queue<pair<int, vector<string>>,
+                            vector<pair<int, vector<string>>>, Alpha2>();
+
+    unordered_map<string, vector<string>>::const_iterator itr =
+        actormap->begin();
+    unordered_map<string, vector<string>>::const_iterator en = actormap->end();
+
+    while (itr != en) {
+        actora = itr->first;
+        movies = itr->second;
+        ++itr; /*next actor*/
+
+        for (int i = 0; i < movies.size(); i++) {  // loop thru movies
+
+            /*get the year of the movie*/
+            string r = (movies[i]).substr((movies[i]).size() - 4,
+                                          (movies[i]).size() - 1);
+            int movieYear = stoi(r);
+            int movieWeight = 1 + (2019 - movieYear);
+
+            findmovie = moviemap->find(movies[i]);
+            actorsPerMovie = findmovie->second;  // actors in that movie
+
+            for (int i = 0; i < actorsPerMovie.size(); i++) {  // loop actors
+
+                if (actorsPerMovie[i] == actora) {  // dont repeat
+                    continue;
+                }
+
+                // vector : <actora, actorb, movieincommon>
+                vector<string> relationship;
+                relationship.push_back(actora);
+                relationship.push_back(actorsPerMovie[i]);
+                relationship.push_back(findmovie->first);
+
+                pq.push(make_pair(movieWeight, relationship));  // add to pq
+            }
+        }
+    }
+
+    while (totalNodes < numActors) {
+        /*NEXT PART*/
+        pair<int, vector<string>> currLowest = pq.top();
+        pq.pop();
+
+        /*get info from the vecctor*/
+        actora = currLowest.second[0];
+        string actorb = currLowest.second[1];
+        string movie = currLowest.second[2];
+
+        /*Check they don't create a cycle*/
+        if (uf.find(actora) != uf.find(actorb)) {
+            uf.unite(actora, actorb);
+
+            /*find actor in actorNodes, check*/
+
+            unordered_map<string, Actor*>::const_iterator actor1 =
+                actorNodes->find(actora);
+            Actor* next = actor1->second;
+            if (!(next->visited)) {
+                next->visited = 1;
+                totalNodes++;
+            }
+
+            actor1 = actorNodes->find(actorb);
+            next = actor1->second;
+            if (!(next->visited)) {
+                next->visited = 1;
+                totalNodes++;
+            }
+
+            totalEdges++;
+            totalEdgeWeight += currLowest.first;
+            outFile << "(" << actora << ")<--[" << movie << "]-->(" << actorb
+                    << ")" << endl;
+        }
+    }
+
+    /*print out the final thingf*/
+    outFile << "#NODE CONNECTED: " << totalNodes << endl;
+    outFile << "#EDGE CHOSEN: " << totalEdges << endl;
+    outFile << "TOTAL EDGE WEIGHTS: " << totalEdgeWeight << endl;
 }

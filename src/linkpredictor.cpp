@@ -1,12 +1,11 @@
 /*
- * pathfinder.cpp
+ * linkpredictor.cpp
  * Author: Ashley Eckert
  * Date:   December 3, 2019
  *
- * This file is meant to take in command inputs and choose wether
- * to use BFS search of Dijkstras algorithm to find a path between
- * two actors.
- * it calls ActorGraph class functions to do this.
+ * This file is meant to parse command arguments and predict
+ * which actors someone is most likely to collaborate with
+ * in the future based off of the input file.
  */
 #include <algorithm>
 #include <fstream>
@@ -77,12 +76,12 @@ void linkpredictor(vector<string> query, const char* inFilename,
         v1.erase(unique(v1.begin(), v1.end()), v1.end());
 
         /*create a PQ for the first set*/
-        priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha>
+        priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha1>
             pq1 = priority_queue<pair<int, string>, vector<pair<int, string>>,
-                                 Alpha>();
-        priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha>
+                                 Alpha1>();
+        priority_queue<pair<int, string>, vector<pair<int, string>>, Alpha1>
             pq2 = priority_queue<pair<int, string>, vector<pair<int, string>>,
-                                 Alpha>();
+                                 Alpha1>();
 
         /*populate the pq's with pairs for each node and its priority*/
         for (int i = 0; i < v1.size(); i++) {
